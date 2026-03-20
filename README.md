@@ -70,6 +70,7 @@ sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 ```bash
 pip install evil-winrm-py
 pip install evil-winrm-py[kerberos] # for kerberos support on Linux
+pip install evil-winrm-py[kerberos-impacket] # for impacket-backed kerberos support
 
 # Note: building gssapi and krb5 packages may take some time, so be patient.
 ```
@@ -110,7 +111,8 @@ Details on how to use `evil-winrm-py` can be found in the [Usage Guide](https://
 usage: evil-winrm-py [-h] -i IP [-u USER] [-p PASSWORD] [-H HASH]
                      [--priv-key-pem PRIV_KEY_PEM] [--cert-pem CERT_PEM] [--uri URI]
                      [--ua UA] [--port PORT] [--spn-prefix SPN_PREFIX]
-                     [--spn-hostname SPN_HOSTNAME] [-k] [--no-pass] [--ssl] [--log]
+                     [--spn-hostname SPN_HOSTNAME] [-k]
+                     [--kerberos-provider {native,impacket}] [--no-pass] [--ssl] [--log]
                      [--debug] [--no-colors] [--version]
 
 options:
@@ -131,6 +133,8 @@ options:
   --spn-hostname SPN_HOSTNAME
                         specify spn hostname
   -k, --kerberos        use kerberos authentication
+  --kerberos-provider {native,impacket}
+                        kerberos backend to use (default: native)
   --no-pass             do not prompt for password
   --ssl                 use ssl
   --log                 log session to file

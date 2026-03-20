@@ -48,6 +48,7 @@ This will request a Kerberos ticket and store it in memory for the session.
 
 ```bash
 evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
+evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos --kerberos-provider impacket
 ```
 
 #### Ticket-based Kerberos Authentication
@@ -67,6 +68,7 @@ Then, you can run the command without providing a username or password:
 
 ```bash
 evil-winrm-py -i <IP> --kerberos
+evil-winrm-py -i <IP> --kerberos --kerberos-provider impacket
 ```
 
 > [!IMPORTANT]
@@ -78,11 +80,18 @@ The tool also supports direct authentication (without setting `KRB5CCNAME`) when
 evil-winrm-py -i <IP> -u <USERNAME> -p <PASSWORD> --kerberos
 ```
 
+Use the Impacket backend if you want to drive Kerberos from Impacket instead of the native `gssapi/krb5` stack:
+
+```bash
+evil-winrm-py -i <IP> --kerberos --kerberos-provider impacket
+```
+
 Optionally, you can specify the Kerberos realm and SPN prefix/hostname
 If you have a Kerberos ticket, you can use it with the following options:
 
 ```bash
 evil-winrm-py -i <IP> -u <USERNAME> --kerberos --no-pass --spn-prefix <SPN_PREFIX> --spn-hostname <SPN_HOSTNAME>
+evil-winrm-py -i <IP> --kerberos --kerberos-provider impacket --no-pass --spn-prefix <SPN_PREFIX> --spn-hostname <SPN_HOSTNAME>
 ```
 
 ### Pass-the-Hash Authentication

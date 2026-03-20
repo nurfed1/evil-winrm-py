@@ -43,13 +43,30 @@ try:
     from gssapi.raw import Creds as RawCreds
     from krb5._exceptions import Krb5Error
 
-    is_kerb_available = True
+    is_native_kerberos_available = True
 except ImportError:
-    is_kerb_available = False
+    is_native_kerberos_available = False
 
     # If kerberos is not available, define a dummy exception
     class Krb5Error(Exception):
         pass
+
+try:
+    from impacket.krb5.kerberosv5 import KerberosError as ImpacketKerberosError
+
+    from evil_winrm_py.pypsrp_ewp.impacket_kerberos import (
+        get_cached_kerberos_principal,
+    )
+
+    is_impacket_kerberos_available = True
+except ImportError:
+    is_impacket_kerberos_available = False
+
+    class ImpacketKerberosError(Exception):
+        pass
+
+    def get_cached_kerberos_principal(*args, **kwargs):
+        raise ValueError("Impacket Kerberos support is not installed")
 
 
 from evil_winrm_py import __version__
@@ -1454,18 +1471,23 @@ def main():
     parser.add_argument(
         "--port", type=int, default=5985, help="remote host port (default 5985)"
     )
-    if is_kerb_available:
-        parser.add_argument(
-            "--spn-prefix",
-            help="specify spn prefix",
-        )
-        parser.add_argument(
-            "--spn-hostname",
-            help="specify spn hostname",
-        )
-        parser.add_argument(
-            "-k", "--kerberos", action="store_true", help="use kerberos authentication"
-        )
+    parser.add_argument(
+        "--spn-prefix",
+        help="specify spn prefix",
+    )
+    parser.add_argument(
+        "--spn-hostname",
+        help="specify spn hostname",
+    )
+    parser.add_argument(
+        "-k", "--kerberos", action="store_true", help="use kerberos authentication"
+    )
+    parser.add_argument(
+        "--kerberos-provider",
+        default="native",
+        choices=["native", "impacket"],
+        help="kerberos backend to use (default: native)",
+    )
     parser.add_argument(
         "--no-pass", action="store_true", help="do not prompt for password"
     )
@@ -1556,12 +1578,19 @@ def main():
     # --- Initialize WinRM Session ---
     log.info("--- Evil-WinRM-Py v{} started ---".format(__version__))
     try:
-        if is_kerb_available:
-            if args.kerberos:
-                auth = "kerberos"
-                args.spn_prefix = (
-                    args.spn_prefix or "http"
-                )  # can also be cifs, ldap, HOST
+        if args.kerberos:
+            auth = "kerberos"
+            args.spn_prefix = args.spn_prefix or "http"  # can also be cifs, ldap, HOST
+
+            if args.kerberos_provider == "native":
+                if not is_native_kerberos_available:
+                    print(
+                        RED
+                        + "[-] Native Kerberos support is not available. Install the kerberos extra or use '--kerberos-provider impacket'."
+                        + RESET
+                    )
+                    sys.exit(1)
+
                 if not args.user:
                     try:
                         cred = GSSAPICredentials(RawCreds())
@@ -1579,18 +1608,31 @@ def main():
                         )
                         log.error("Expired credentials error: {}".format(ece))
                         sys.exit(1)
-                # User needs to set environment variables `KRB5CCNAME` and `KRB5_CONFIG` as per requirements
-                # example: export KRB5CCNAME=/tmp/krb5cc_1000
-                # example: export KRB5_CONFIG=/etc/krb5.conf
-            elif args.spn_prefix or args.spn_hostname:
-                args.spn_prefix = args.spn_hostname = None  # Reset to None
-                print(
-                    MAGENTA
-                    + "[%] SPN prefix/hostname is only used with Kerberos authentication."
-                    + RESET
-                )
-        else:
+            else:
+                if not is_impacket_kerberos_available:
+                    print(
+                        RED
+                        + "[-] Impacket Kerberos support is not available. Install the impacket kerberos extra first."
+                        + RESET
+                    )
+                    sys.exit(1)
+
+                if not args.user:
+                    try:
+                        username = get_cached_kerberos_principal(
+                            args.spn_prefix,
+                            args.spn_hostname or args.ip,
+                        )
+                    except ValueError as exc:
+                        print(MAGENTA + "[%] {}.".format(exc) + RESET)
+                        sys.exit(1)
+        elif args.spn_prefix or args.spn_hostname:
             args.spn_prefix = args.spn_hostname = None
+            print(
+                MAGENTA
+                + "[%] SPN prefix/hostname is only used with Kerberos authentication."
+                + RESET
+            )
 
         if args.no_pass:
             args.password = None
@@ -1624,6 +1666,7 @@ def main():
             path=args.uri,
             negotiate_service=args.spn_prefix,
             negotiate_hostname_override=args.spn_hostname,
+            kerberos_provider=args.kerberos_provider,
             certificate_key_pem=args.priv_key_pem,
             certificate_pem=args.cert_pem,
             user_agent=args.ua,
@@ -1654,6 +1697,10 @@ def main():
     except Krb5Error as ke:
         print(RED + "[-] {}".format(ke) + RESET)
         log.error("Kerberos error: {}".format(ke))
+        sys.exit(1)
+    except ImpacketKerberosError as ike:
+        print(RED + "[-] {}".format(ike) + RESET)
+        log.error("Impacket Kerberos error: {}".format(ike))
         sys.exit(1)
     except (OperationNotAvailableError, NoCredentialError) as se:
         print(RED + "[-] {}".format(se._context_message) + RESET)

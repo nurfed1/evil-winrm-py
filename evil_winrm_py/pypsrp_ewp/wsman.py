@@ -14,7 +14,6 @@ import uuid
 import xml.etree.ElementTree as ET
 
 from pypsrp._utils import get_hostname
-from pypsrp.encryption import WinRMEncryption
 from pypsrp.exceptions import WinRMTransportError
 from pypsrp.wsman import (
     AUTH_KWARGS,
@@ -26,6 +25,8 @@ from pypsrp.wsman import (
 )
 from urllib3.util.retry import Retry
 
+from evil_winrm_py.pypsrp_ewp.encryption import WinRMEncryption
+
 try:
     from requests_credssp import HttpCredSSPAuth
 except ImportError as err:  # pragma: no cover
@@ -36,6 +37,20 @@ except ImportError as err:  # pragma: no cover
     class HttpCredSSPAuth(object):  # type: ignore[no-redef] # https://github.com/python/mypy/issues/1153
         def __init__(self, *args, **kwargs):
             raise ImportError(_requests_credssp_import_error)
+
+try:
+    from evil_winrm_py.pypsrp_ewp.impacket_kerberos import HTTPImpacketKerberosAuth
+
+    _impacket_kerberos_available = True
+except ImportError as err:  # pragma: no cover
+    _impacket_kerberos_import_error = (
+        "Cannot use Impacket Kerberos auth as impacket is not installed: %s" % err
+    )
+    _impacket_kerberos_available = False
+
+    class HTTPImpacketKerberosAuth(object):  # type: ignore[no-redef]
+        def __init__(self, *args, **kwargs):
+            raise ImportError(_impacket_kerberos_import_error)
 
 
 log = logging.getLogger(__name__)
@@ -237,6 +252,7 @@ class _TransportHTTPEWP(_TransportHTTP):
         self.reconnection_retries = reconnection_retries
         self.reconnection_backoff = reconnection_backoff
         self.user_agent = user_agent
+        self.kerberos_provider = kwargs.pop("kerberos_provider", "native")
 
         # determine the message encryption logic
         if encryption not in ["auto", "always", "never"]:
@@ -418,3 +434,16 @@ class _TransportHTTPEWP(_TransportHTTP):
         build_auth = getattr(self, "_build_auth_%s" % self.auth)
         build_auth(session)
         return session
+
+    def _build_auth_kerberos(self, session: requests.Session) -> None:
+        if self.kerberos_provider == "impacket":
+            kwargs = self._get_auth_kwargs("negotiate")
+            session.auth = HTTPImpacketKerberosAuth(
+                username=self.username,
+                password=self.password,
+                wrap_required=self.wrap_required,
+                **kwargs,
+            )
+            return
+
+        super()._build_auth_kerberos(session)

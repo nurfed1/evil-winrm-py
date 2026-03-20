@@ -27,6 +27,7 @@ sudo apt install gcc python3-dev libkrb5-dev krb5-pkinit
 
 > [!NOTE]
 > `[kerberos]` is an optional dependency that includes the necessary packages for Kerberos authentication support. If you do not require Kerberos authentication, you can install `evil-winrm-py` without this extra.
+> `[kerberos-impacket]` installs the Impacket-backed Kerberos path, which avoids the native `python-krb5` dependency and can be useful with externally generated tickets.
 
 ## Using `pip`
 
@@ -34,12 +35,14 @@ You can install the package directly from PyPI using pip:
 
 ```bash
 pip install evil-winrm-py[kerberos]
+pip install evil-winrm-py[kerberos-impacket]
 ```
 
 Installing latest development version directly from GitHub:
 
 ```bash
 pip install 'evil-winrm-py[kerberos] @ git+https://github.com/adityatelange/evil-winrm-py'
+pip install 'evil-winrm-py[kerberos-impacket] @ git+https://github.com/adityatelange/evil-winrm-py'
 ```
 
 ## Using `pipx`
@@ -48,12 +51,14 @@ For a more isolated installation, you can use pipx:
 
 ```bash
 pipx install evil-winrm-py[kerberos]
+pipx install evil-winrm-py[kerberos-impacket]
 ```
 
 Installing latest development version directly from GitHub:
 
 ```bash
 pipx install 'evil-winrm-py[kerberos] @ git+https://github.com/adityatelange/evil-winrm-py'
+pipx install 'evil-winrm-py[kerberos-impacket] @ git+https://github.com/adityatelange/evil-winrm-py'
 ```
 
 ## Using `uv`
@@ -62,10 +67,12 @@ If you prefer using `uv`, you can install the package with the following command
 
 ```bash
 uv tool install evil-winrm-py[kerberos]
+uv tool install evil-winrm-py[kerberos-impacket]
 ```
 
 Installing latest development version directly from GitHub:
 
 ```bash
 uv tool install git+https://github.com/adityatelange/evil-winrm-py[kerberos]
+uv tool install git+https://github.com/adityatelange/evil-winrm-py[kerberos-impacket]
 ```

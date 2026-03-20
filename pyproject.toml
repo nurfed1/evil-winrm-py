@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=77", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "evil-winrm-py"
+dynamic = ["version"]
+description = "Execute commands interactively on remote Windows machines using the WinRM protocol"
+readme = "README.md"
+requires-python = ">=3.9"
+license = "MIT"
+authors = [
+  { name = "adityatelange" },
+]
+classifiers = [
+  "Topic :: Security",
+  "Operating System :: Unix",
+  "Programming Language :: Python :: 3",
+]
+dependencies = [
+  "pypsrp==0.8.1",
+  "prompt_toolkit==3.0.52",
+  "tqdm==4.67.1",
+  "impacket>=0.11.0",
+]
+
+[project.optional-dependencies]
+kerberos = [
+  "pypsrp[kerberos]==0.8.1",
+]
+
+[project.scripts]
+evil-winrm-py = "evil_winrm_py.evil_winrm_py:main"
+ewp = "evil_winrm_py.evil_winrm_py:main"
+
+[project.urls]
+Homepage = "https://github.com/adityatelange/evil-winrm-py"
+Repository = "https://github.com/adityatelange/evil-winrm-py"
+Download = "https://github.com/adityatelange/evil-winrm-py/releases"
+
+[tool.setuptools.dynamic]
+version = { attr = "evil_winrm_py.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["evil_winrm_py*"]
+
+[tool.setuptools.package-data]
+evil_winrm_py = ["_ps/*.ps1"]
